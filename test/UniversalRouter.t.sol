@@ -26,7 +26,12 @@ import {MockERC721} from "./mock/MockERC721.sol";
 import {MockERC1155} from "./mock/MockERC1155.sol";
 import {RouterParameters} from "../src/base/RouterImmutables.sol";
 
-contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, DeployPermit2 {
+contract UniversalRouterTest is
+    Test,
+    GasSnapshot,
+    Permit2SignatureHelpers,
+    DeployPermit2
+{
     using AddressBuilder for address[];
 
     error ContractSizeTooLarge(uint256 diff);
@@ -158,9 +163,14 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
     }
 
     function test_wrapEth() public {
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.WRAP_ETH)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.WRAP_ETH))
+        );
         bytes[] memory inputs = new bytes[](1);
-        inputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        inputs[0] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
 
         // assert and verify
         assertEq(weth9.balanceOf(address(router)), 0 ether);
@@ -170,9 +180,14 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
 
     function test_wrapEth_differentRecipient() public {
         address alice = makeAddr("alice");
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.WRAP_ETH)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.WRAP_ETH))
+        );
         bytes[] memory inputs = new bytes[](1);
-        inputs[0] = abi.encode(address(alice), ActionConstants.CONTRACT_BALANCE);
+        inputs[0] = abi.encode(
+            address(alice),
+            ActionConstants.CONTRACT_BALANCE
+        );
 
         // assert and verify
         assertEq(weth9.balanceOf(address(router)), 0 ether);
@@ -183,7 +198,9 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
     }
 
     function test_wrapEth_insufficientEth() public {
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.WRAP_ETH)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.WRAP_ETH))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, 1 ether + 1);
 
@@ -192,9 +209,15 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
     }
 
     function test_unwrapWeth() public {
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.WRAP_ETH)), bytes1(uint8(Commands.UNWRAP_WETH)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.WRAP_ETH)),
+            bytes1(uint8(Commands.UNWRAP_WETH))
+        );
         bytes[] memory inputs = new bytes[](2);
-        inputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        inputs[0] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
         inputs[1] = abi.encode(ActionConstants.ADDRESS_THIS, 1 ether);
 
         // assert and verify
@@ -205,9 +228,15 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
 
     function test_unwrapWeth_differentRecipient() public {
         address alice = makeAddr("alice");
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.WRAP_ETH)), bytes1(uint8(Commands.UNWRAP_WETH)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.WRAP_ETH)),
+            bytes1(uint8(Commands.UNWRAP_WETH))
+        );
         bytes[] memory inputs = new bytes[](2);
-        inputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        inputs[0] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
         inputs[1] = abi.encode(alice, 1 ether);
 
         // assert and verify
@@ -219,9 +248,15 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
     }
 
     function test_unwrapWeth_insufficientETH() public {
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.WRAP_ETH)), bytes1(uint8(Commands.UNWRAP_WETH)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.WRAP_ETH)),
+            bytes1(uint8(Commands.UNWRAP_WETH))
+        );
         bytes[] memory inputs = new bytes[](2);
-        inputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        inputs[0] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
         inputs[1] = abi.encode(ActionConstants.ADDRESS_THIS, 1 ether + 1);
 
         // assert and verify
@@ -236,27 +271,42 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         uint48 permitExpiration = uint48(block.timestamp + 10e18);
         uint48 permitNonce = 0;
 
-        IAllowanceTransfer.PermitSingle memory permit =
-            defaultERC20PermitAllowance(address(erc20), permitAmount, permitExpiration, permitNonce);
+        IAllowanceTransfer.PermitSingle
+            memory permit = defaultERC20PermitAllowance(
+                address(erc20),
+                permitAmount,
+                permitExpiration,
+                permitNonce
+            );
         permit.spender = address(router);
-        bytes memory sig = getPermitSignature(permit, charliePK, permit2.DOMAIN_SEPARATOR());
+        bytes memory sig = getPermitSignature(
+            permit,
+            charliePK,
+            permit2.DOMAIN_SEPARATOR()
+        );
 
         // before verify
-        (uint160 _amount, uint48 _expiration, uint48 _nonce) =
-            permit2.allowance(charlie, address(erc20), address(router));
+        (uint160 _amount, uint48 _expiration, uint48 _nonce) = permit2
+            .allowance(charlie, address(erc20), address(router));
         assertEq(_amount, 0);
         assertEq(_expiration, 0);
         assertEq(_nonce, 0);
 
         // execute
         vm.startPrank(charlie);
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.PERMIT2_PERMIT)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.PERMIT2_PERMIT))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(permit, sig);
         router.execute(commands, inputs);
 
         // after verify
-        (_amount, _expiration, _nonce) = permit2.allowance(charlie, address(erc20), address(router));
+        (_amount, _expiration, _nonce) = permit2.allowance(
+            charlie,
+            address(erc20),
+            address(router)
+        );
         assertEq(_amount, permitAmount);
         assertEq(_expiration, permitExpiration);
         assertEq(_nonce, permitNonce + 1);
@@ -273,15 +323,24 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         tokens[0] = address(erc20);
         tokens[1] = address(erc20_2);
 
-        IAllowanceTransfer.PermitBatch memory permit =
-            defaultERC20PermitBatchAllowance(tokens, permitAmount, permitExpiration, permitNonce);
+        IAllowanceTransfer.PermitBatch
+            memory permit = defaultERC20PermitBatchAllowance(
+                tokens,
+                permitAmount,
+                permitExpiration,
+                permitNonce
+            );
         permit.spender = address(router);
-        bytes memory sig = getPermitBatchSignature(permit, charliePK, permit2.DOMAIN_SEPARATOR());
+        bytes memory sig = getPermitBatchSignature(
+            permit,
+            charliePK,
+            permit2.DOMAIN_SEPARATOR()
+        );
 
         // before verify
         for (uint256 i; i < tokens.length; i++) {
-            (uint160 _amount, uint48 _expiration, uint48 _nonce) =
-                permit2.allowance(charlie, tokens[i], address(router));
+            (uint160 _amount, uint48 _expiration, uint48 _nonce) = permit2
+                .allowance(charlie, tokens[i], address(router));
             assertEq(_amount, 0);
             assertEq(_expiration, 0);
             assertEq(_nonce, 0);
@@ -289,15 +348,17 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
 
         // execute
         vm.startPrank(charlie);
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.PERMIT2_PERMIT_BATCH)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.PERMIT2_PERMIT_BATCH))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(permit, sig);
         router.execute(commands, inputs);
 
         // after verify
         for (uint256 i; i < tokens.length; i++) {
-            (uint160 _amount, uint48 _expiration, uint48 _nonce) =
-                permit2.allowance(charlie, address(tokens[i]), address(router));
+            (uint160 _amount, uint48 _expiration, uint48 _nonce) = permit2
+                .allowance(charlie, address(tokens[i]), address(router));
             assertEq(_amount, permitAmount);
             assertEq(_expiration, permitExpiration);
             assertEq(_nonce, permitNonce + 1);
@@ -312,18 +373,27 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         uint48 permitExpiration = uint48(block.timestamp + 10e18);
         uint48 permitNonce = 0;
 
-        IAllowanceTransfer.PermitSingle memory permit =
-            defaultERC20PermitAllowance(address(erc20), permitAmount, permitExpiration, permitNonce);
+        IAllowanceTransfer.PermitSingle
+            memory permit = defaultERC20PermitAllowance(
+                address(erc20),
+                permitAmount,
+                permitExpiration,
+                permitNonce
+            );
         permit.spender = address(router);
-        bytes memory sig = getPermitSignature(permit, charliePK, permit2.DOMAIN_SEPARATOR());
+        bytes memory sig = getPermitSignature(
+            permit,
+            charliePK,
+            permit2.DOMAIN_SEPARATOR()
+        );
 
         // bob front-runs the permits
         vm.prank(bob);
         permit2.permit(charlie, permit, sig);
 
         // bob's front-run was successful
-        (uint160 _amount, uint48 _expiration, uint48 _nonce) =
-            permit2.allowance(charlie, address(erc20), address(router));
+        (uint160 _amount, uint48 _expiration, uint48 _nonce) = permit2
+            .allowance(charlie, address(erc20), address(router));
         assertEq(_amount, permitAmount);
         assertEq(_expiration, permitExpiration);
         assertEq(_nonce, permitNonce + 1);
@@ -337,22 +407,31 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
 
         bytes[] memory inputs = new bytes[](2);
         inputs[0] = abi.encode(permit, sig);
-        inputs[1] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        inputs[1] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
 
         bytes memory commands;
 
         // attempt 1: execute and expect revert
-        commands = abi.encodePacked(bytes1(uint8(Commands.PERMIT2_PERMIT)), bytes1(uint8(Commands.WRAP_ETH)));
+        commands = abi.encodePacked(
+            bytes1(uint8(Commands.PERMIT2_PERMIT)),
+            bytes1(uint8(Commands.WRAP_ETH))
+        );
         vm.expectRevert(
             abi.encodeWithSelector(
-                IUniversalRouter.ExecutionFailed.selector, 0, abi.encodePacked(InvalidNonce.selector)
+                IUniversalRouter.ExecutionFailed.selector,
+                0,
+                abi.encodePacked(InvalidNonce.selector)
             )
         );
         router.execute{value: 1 ether}(commands, inputs);
 
         // attempt 2: execute with allow revert flag and no revert expected
         commands = abi.encodePacked(
-            bytes1(uint8(Commands.PERMIT2_PERMIT)) | Commands.FLAG_ALLOW_REVERT, bytes1(uint8(Commands.WRAP_ETH))
+            bytes1(uint8(Commands.PERMIT2_PERMIT)) | Commands.FLAG_ALLOW_REVERT,
+            bytes1(uint8(Commands.WRAP_ETH))
         );
         router.execute{value: 1 ether}(commands, inputs);
 
@@ -372,10 +451,19 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         tokens[0] = address(erc20);
         tokens[1] = address(erc20_2);
 
-        IAllowanceTransfer.PermitBatch memory permit =
-            defaultERC20PermitBatchAllowance(tokens, permitAmount, permitExpiration, permitNonce);
+        IAllowanceTransfer.PermitBatch
+            memory permit = defaultERC20PermitBatchAllowance(
+                tokens,
+                permitAmount,
+                permitExpiration,
+                permitNonce
+            );
         permit.spender = address(router);
-        bytes memory sig = getPermitBatchSignature(permit, charliePK, permit2.DOMAIN_SEPARATOR());
+        bytes memory sig = getPermitBatchSignature(
+            permit,
+            charliePK,
+            permit2.DOMAIN_SEPARATOR()
+        );
 
         // bob front-runs the permits
         vm.prank(bob);
@@ -383,8 +471,8 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
 
         // bob's front-run was successful
         for (uint256 i; i < tokens.length; i++) {
-            (uint160 _amount, uint48 _expiration, uint48 _nonce) =
-                permit2.allowance(charlie, address(tokens[i]), address(router));
+            (uint160 _amount, uint48 _expiration, uint48 _nonce) = permit2
+                .allowance(charlie, address(tokens[i]), address(router));
             assertEq(_amount, permitAmount);
             assertEq(_expiration, permitExpiration);
             assertEq(_nonce, permitNonce + 1);
@@ -399,22 +487,32 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
 
         bytes[] memory inputs = new bytes[](2);
         inputs[0] = abi.encode(permit, sig);
-        inputs[1] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        inputs[1] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
 
         bytes memory commands;
 
         // attempt 1: execute and expect revert
-        commands = abi.encodePacked(bytes1(uint8(Commands.PERMIT2_PERMIT_BATCH)), bytes1(uint8(Commands.WRAP_ETH)));
+        commands = abi.encodePacked(
+            bytes1(uint8(Commands.PERMIT2_PERMIT_BATCH)),
+            bytes1(uint8(Commands.WRAP_ETH))
+        );
         vm.expectRevert(
             abi.encodeWithSelector(
-                IUniversalRouter.ExecutionFailed.selector, 0, abi.encodePacked(InvalidNonce.selector)
+                IUniversalRouter.ExecutionFailed.selector,
+                0,
+                abi.encodePacked(InvalidNonce.selector)
             )
         );
         router.execute{value: 1 ether}(commands, inputs);
 
         // attempt 2: execute with allow revert flag and no revert expected
         commands = abi.encodePacked(
-            bytes1(uint8(Commands.PERMIT2_PERMIT_BATCH)) | Commands.FLAG_ALLOW_REVERT, bytes1(uint8(Commands.WRAP_ETH))
+            bytes1(uint8(Commands.PERMIT2_PERMIT_BATCH)) |
+                Commands.FLAG_ALLOW_REVERT,
+            bytes1(uint8(Commands.WRAP_ETH))
         );
         router.execute{value: 1 ether}(commands, inputs);
 
@@ -426,7 +524,12 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         // pre-req: bob approve router to spend erc20
         vm.startPrank(bob);
         erc20.approve(address(permit2), type(uint256).max);
-        permit2.approve(address(erc20), address(router), type(uint160).max, type(uint48).max);
+        permit2.approve(
+            address(erc20),
+            address(router),
+            type(uint160).max,
+            type(uint48).max
+        );
         vm.stopPrank();
 
         // before
@@ -436,7 +539,9 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         assertEq(erc20.balanceOf(alice), 0 ether);
 
         // execute
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.PERMIT2_TRANSFER_FROM)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.PERMIT2_TRANSFER_FROM))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(address(erc20), alice, 10 ether);
         vm.prank(bob);
@@ -452,8 +557,18 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         vm.startPrank(bob);
         erc20.approve(address(permit2), type(uint256).max);
         erc20_2.approve(address(permit2), type(uint256).max);
-        permit2.approve(address(erc20), address(router), type(uint160).max, type(uint48).max);
-        permit2.approve(address(erc20_2), address(router), type(uint160).max, type(uint48).max);
+        permit2.approve(
+            address(erc20),
+            address(router),
+            type(uint160).max,
+            type(uint48).max
+        );
+        permit2.approve(
+            address(erc20_2),
+            address(router),
+            type(uint160).max,
+            type(uint48).max
+        );
         vm.stopPrank();
 
         // before
@@ -466,11 +581,21 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         assertEq(erc20_2.balanceOf(alice), 0 ether);
 
         // execute 10 eth transfer of erc20 and erc20_2
-        address[] memory tokens = AddressBuilder.fill(1, address(erc20)).push(address(erc20_2));
+        address[] memory tokens = AddressBuilder.fill(1, address(erc20)).push(
+            address(erc20_2)
+        );
         address[] memory owner = AddressBuilder.fill(1, bob).push(bob);
-        IAllowanceTransfer.AllowanceTransferDetails[] memory transferDetails =
-            StructBuilder.fillAllowanceTransferDetail(2, tokens, 10 ether, alice, owner);
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.PERMIT2_TRANSFER_FROM_BATCH)));
+        IAllowanceTransfer.AllowanceTransferDetails[]
+            memory transferDetails = StructBuilder.fillAllowanceTransferDetail(
+                2,
+                tokens,
+                10 ether,
+                alice,
+                owner
+            );
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.PERMIT2_TRANSFER_FROM_BATCH))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(transferDetails);
         vm.prank(bob);
@@ -492,7 +617,9 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         assertEq(address(router).balance, 1 ether);
 
         // transfer token from router
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.TRANSFER)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.TRANSFER))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(Constants.ETH, bob, 0.5 ether);
         vm.prank(bob);
@@ -511,9 +638,15 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         assertEq(erc20.balanceOf(address(router)), 1 ether);
 
         // transfer token from router
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.TRANSFER)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.TRANSFER))
+        );
         bytes[] memory inputs = new bytes[](1);
-        inputs[0] = abi.encode(address(erc20), bob, ActionConstants.CONTRACT_BALANCE);
+        inputs[0] = abi.encode(
+            address(erc20),
+            bob,
+            ActionConstants.CONTRACT_BALANCE
+        );
         vm.prank(bob);
         router.execute(commands, inputs);
 
@@ -530,7 +663,9 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         assertEq(erc20.balanceOf(address(router)), 1 ether);
 
         // transfer token from router
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.TRANSFER)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.TRANSFER))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(address(erc20), bob, 0.5 ether);
         vm.prank(bob);
@@ -550,7 +685,9 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         assertEq(address(router).balance, 1 ether);
 
         // transfer token from router
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.PAY_PORTION)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.PAY_PORTION))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(Constants.ETH, bob, 1_000); // 1_000 bips = 10%
         vm.prank(bob);
@@ -569,7 +706,9 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         assertEq(erc20.balanceOf(address(router)), 1 ether);
 
         // transfer token from router
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.PAY_PORTION)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.PAY_PORTION))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(address(erc20), bob, 1_000); // 1_000 bips = 10%
         vm.prank(bob);
@@ -584,13 +723,17 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         erc20.mint(address(bob), 1 ether);
 
         // check balance
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.BALANCE_CHECK_ERC20)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.BALANCE_CHECK_ERC20))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(bob, address(erc20), 2 ether); // bob only have 1 ether
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IUniversalRouter.ExecutionFailed.selector, 0, abi.encodePacked(Dispatcher.BalanceTooLow.selector)
+                IUniversalRouter.ExecutionFailed.selector,
+                0,
+                abi.encodePacked(Dispatcher.BalanceTooLow.selector)
             )
         );
         router.execute(commands, inputs);
@@ -600,7 +743,9 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         erc20.mint(address(bob), 1 ether);
 
         // check balance
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.BALANCE_CHECK_ERC20)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.BALANCE_CHECK_ERC20))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(bob, address(erc20), 1 ether);
 
@@ -610,12 +755,19 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
 
     function test_ExecuteSubPlan_WrapEth() public {
         // prepare subCommand and subInputs
-        bytes memory subCommand = abi.encodePacked(bytes1(uint8(Commands.WRAP_ETH)));
+        bytes memory subCommand = abi.encodePacked(
+            bytes1(uint8(Commands.WRAP_ETH))
+        );
         bytes[] memory subInputs = new bytes[](1);
-        subInputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        subInputs[0] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
 
         // prepare commands and inputs
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.EXECUTE_SUB_PLAN)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.EXECUTE_SUB_PLAN))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(subCommand, subInputs);
 
@@ -638,13 +790,23 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(bob); // random input
 
-        vm.expectRevert(abi.encodeWithSelector(Dispatcher.InvalidCommandType.selector, command));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Dispatcher.InvalidCommandType.selector,
+                command
+            )
+        );
         router.execute(commands, inputs);
     }
 
     function test_PauseUnpause_OnlyOwner() public {
         // Random user
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, bob));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                bob
+            )
+        );
         vm.prank(bob);
         router.pause();
 
@@ -661,9 +823,14 @@ contract UniversalRouterTest is Test, GasSnapshot, Permit2SignatureHelpers, Depl
     function test_Pause_NoExecute() public {
         router.pause();
 
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.WRAP_ETH)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.WRAP_ETH))
+        );
         bytes[] memory inputs = new bytes[](1);
-        inputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        inputs[0] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
 
         vm.expectRevert(Pausable.EnforcedPause.selector);
         router.execute{value: 1 ether}(commands, inputs);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Copyright (C) 2024 PancakeSwap
+// Copyright (C) 2024 CatalistSwap
 pragma solidity ^0.8.0;
 
 /// @title Safe casting methods

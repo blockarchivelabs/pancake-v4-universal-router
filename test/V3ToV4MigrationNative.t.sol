@@ -26,8 +26,7 @@ import {CLPositionManager} from "pancake-v4-periphery/src/pool-cl/CLPositionMana
 import {CLPositionDescriptorOffChain} from "pancake-v4-periphery/src/pool-cl/CLPositionDescriptorOffChain.sol";
 import {BinPositionManager} from "pancake-v4-periphery/src/pool-bin/BinPositionManager.sol";
 import {Actions} from "pancake-v4-periphery/src/libraries/Actions.sol";
-import {IV3NonfungiblePositionManager} from
-    "pancake-v4-periphery/src/interfaces/external/IV3NonfungiblePositionManager.sol";
+import {IV3NonfungiblePositionManager} from "pancake-v4-periphery/src/interfaces/external/IV3NonfungiblePositionManager.sol";
 import {IERC721Permit} from "pancake-v4-periphery/src/pool-cl/interfaces/IERC721Permit.sol";
 import {IPositionManager} from "pancake-v4-periphery/src/interfaces/IPositionManager.sol";
 import {IBinPositionManager} from "pancake-v4-periphery/src/pool-bin/interfaces/IBinPositionManager.sol";
@@ -40,14 +39,22 @@ import {Commands} from "../src/libraries/Commands.sol";
 import {RouterParameters} from "../src/base/RouterImmutables.sol";
 import {Dispatcher} from "../src/base/Dispatcher.sol";
 import {UniversalRouter} from "../src/UniversalRouter.sol";
-import {BasePancakeSwapV4} from "./v4/BasePancakeSwapV4.sol";
+import {BaseCatalistSwapV4} from "./v4/BaseCatalistSwapV4.sol";
 
-interface IPancakeV3LikePairFactory {
-    function createPool(address tokenA, address tokenB, uint24 fee) external returns (address pool);
+interface ICatalistV3LikePairFactory {
+    function createPool(
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) external returns (address pool);
 }
 
 /// @dev Test simplified, assume weth-token pair is already broken and token reside in universal router
-contract V3ToV4MigrationNativeTest is BasePancakeSwapV4, OldVersionHelper, BinLiquidityHelper {
+contract V3ToV4MigrationNativeTest is
+    BaseCatalistSwapV4,
+    OldVersionHelper,
+    BinLiquidityHelper
+{
     using BinPoolParametersHelper for bytes32;
     using CLPoolParametersHelper for bytes32;
     using Planner for Plan;
@@ -90,13 +97,36 @@ contract V3ToV4MigrationNativeTest is BasePancakeSwapV4, OldVersionHelper, BinLi
         vault.registerApp(address(binPoolManager));
         vault.registerApp(address(clPoolManager));
 
-        binPositionManager = new BinPositionManager(vault, binPoolManager, permit2, IWETH9(address(weth)));
-        _approvePermit2ForCurrency(address(this), currency1, address(binPositionManager), permit2);
+        binPositionManager = new BinPositionManager(
+            vault,
+            binPoolManager,
+            permit2,
+            IWETH9(address(weth))
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency1,
+            address(binPositionManager),
+            permit2
+        );
 
-        CLPositionDescriptorOffChain pd =
-            new CLPositionDescriptorOffChain("https://pancakeswap.finance/v4/pool-cl/positions/");
-        clPositionManager = new CLPositionManager(vault, clPoolManager, permit2, 100_000, pd, IWETH9(address(weth)));
-        _approvePermit2ForCurrency(address(this), currency1, address(clPositionManager), permit2);
+        CLPositionDescriptorOffChain pd = new CLPositionDescriptorOffChain(
+            "https://catalist.finance/v4/pool-cl/positions/"
+        );
+        clPositionManager = new CLPositionManager(
+            vault,
+            clPoolManager,
+            permit2,
+            100_000,
+            pd,
+            IWETH9(address(weth))
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency1,
+            address(clPositionManager),
+            permit2
+        );
 
         clPoolKey = PoolKey({
             currency0: CurrencyLibrary.NATIVE,
@@ -153,9 +183,27 @@ contract V3ToV4MigrationNativeTest is BasePancakeSwapV4, OldVersionHelper, BinLi
 
         // prep position manager action: mint/ settle/ settle
         Plan memory planner = Planner.init();
-        planner.add(Actions.CL_MINT_POSITION, abi.encode(clPoolKey, -120, 120, 1 ether, 10 ether, 10 ether, alice, ""));
-        planner.add(Actions.SETTLE, abi.encode(clPoolKey.currency0, ActionConstants.OPEN_DELTA, false)); // deduct from universal router
-        planner.add(Actions.SETTLE, abi.encode(clPoolKey.currency1, ActionConstants.OPEN_DELTA, false)); // deduct from universal router
+        planner.add(
+            Actions.CL_MINT_POSITION,
+            abi.encode(
+                clPoolKey,
+                -120,
+                120,
+                1 ether,
+                10 ether,
+                10 ether,
+                alice,
+                ""
+            )
+        );
+        planner.add(
+            Actions.SETTLE,
+            abi.encode(clPoolKey.currency0, ActionConstants.OPEN_DELTA, false)
+        ); // deduct from universal router
+        planner.add(
+            Actions.SETTLE,
+            abi.encode(clPoolKey.currency1, ActionConstants.OPEN_DELTA, false)
+        ); // deduct from universal router
         planner.add(Actions.SWEEP, abi.encode(clPoolKey.currency0, alice));
         planner.add(Actions.SWEEP, abi.encode(clPoolKey.currency1, alice));
 
@@ -168,11 +216,15 @@ contract V3ToV4MigrationNativeTest is BasePancakeSwapV4, OldVersionHelper, BinLi
         bytes[] memory inputs = new bytes[](3);
         inputs[0] = abi.encode(address(router), 10 ether); // get native eth to router
         inputs[1] = abi.encode(token1, address(clPositionManager), 0); // send token1 to clPositionmanager
-        inputs[2] =
-            abi.encodePacked(IPositionManager.modifyLiquidities.selector, abi.encode(planner.encode(), block.timestamp));
+        inputs[2] = abi.encodePacked(
+            IPositionManager.modifyLiquidities.selector,
+            abi.encode(planner.encode(), block.timestamp)
+        );
 
         vm.prank(alice);
-        snapStart("V3ToV4MigrationNativeTest#test_v4CLPositionmanager_Mint_Native");
+        snapStart(
+            "V3ToV4MigrationNativeTest#test_v4CLPositionmanager_Mint_Native"
+        );
         router.execute(commands, inputs);
         snapEnd();
 
@@ -193,13 +245,26 @@ contract V3ToV4MigrationNativeTest is BasePancakeSwapV4, OldVersionHelper, BinLi
 
         // prep position manager action: mint/ settle/ settle
         uint24[] memory binIds = getBinIds(ACTIVE_ID_1_1, 1);
-        IBinPositionManager.BinAddLiquidityParams memory addParams =
-            _getAddParams(binPoolKey, binIds, 5 ether, 5 ether, ACTIVE_ID_1_1, address(this));
+        IBinPositionManager.BinAddLiquidityParams
+            memory addParams = _getAddParams(
+                binPoolKey,
+                binIds,
+                5 ether,
+                5 ether,
+                ACTIVE_ID_1_1,
+                address(this)
+            );
 
         Plan memory planner = Planner.init();
         planner.add(Actions.BIN_ADD_LIQUIDITY, abi.encode(addParams));
-        planner.add(Actions.SETTLE, abi.encode(binPoolKey.currency0, ActionConstants.OPEN_DELTA, false)); // deduct from universal router
-        planner.add(Actions.SETTLE, abi.encode(binPoolKey.currency1, ActionConstants.OPEN_DELTA, false)); // deduct from universal router
+        planner.add(
+            Actions.SETTLE,
+            abi.encode(binPoolKey.currency0, ActionConstants.OPEN_DELTA, false)
+        ); // deduct from universal router
+        planner.add(
+            Actions.SETTLE,
+            abi.encode(binPoolKey.currency1, ActionConstants.OPEN_DELTA, false)
+        ); // deduct from universal router
         planner.add(Actions.SWEEP, abi.encode(binPoolKey.currency0, alice));
         planner.add(Actions.SWEEP, abi.encode(binPoolKey.currency1, alice));
 
@@ -212,11 +277,15 @@ contract V3ToV4MigrationNativeTest is BasePancakeSwapV4, OldVersionHelper, BinLi
         bytes[] memory inputs = new bytes[](3);
         inputs[0] = abi.encode(address(router), 10 ether); // get native eth to universal router
         inputs[1] = abi.encode(token1, address(binPositionManager), 0); // send token1 to binPositionManager
-        inputs[2] =
-            abi.encodePacked(IPositionManager.modifyLiquidities.selector, abi.encode(planner.encode(), block.timestamp));
+        inputs[2] = abi.encodePacked(
+            IPositionManager.modifyLiquidities.selector,
+            abi.encode(planner.encode(), block.timestamp)
+        );
 
         vm.prank(alice);
-        snapStart("V3ToV4MigrationTest#test_v4BinPositionmanager_BinAddLiquidity_Native");
+        snapStart(
+            "V3ToV4MigrationTest#test_v4BinPositionmanager_BinAddLiquidity_Native"
+        );
         router.execute(commands, inputs);
         snapEnd();
 

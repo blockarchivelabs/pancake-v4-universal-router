@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Copyright (C) 2024 PancakeSwap
+// Copyright (C) 2024 CatalistSwap
 pragma solidity ^0.8.0;
 
 import {RouterImmutables} from "../base/RouterImmutables.sol";
-import {IV3NonfungiblePositionManager} from
-    "pancake-v4-periphery/src/interfaces/external/IV3NonfungiblePositionManager.sol";
+import {IV3NonfungiblePositionManager} from "pancake-v4-periphery/src/interfaces/external/IV3NonfungiblePositionManager.sol";
 import {Actions} from "pancake-v4-periphery/src/libraries/Actions.sol";
 import {CalldataDecoder} from "pancake-v4-periphery/src/libraries/CalldataDecoder.sol";
 import {IPositionManager} from "pancake-v4-periphery/src/interfaces/IPositionManager.sol";
 import {IERC721Permit} from "pancake-v4-periphery/src/pool-cl/interfaces/IERC721Permit.sol";
 
 /// @title V3 to V4 Migrator
-/// @notice A contract that migrates liquidity from PancakeSwap V3 to V4
+/// @notice A contract that migrates liquidity from CatalistSwap V3 to V4
 abstract contract V3ToV4Migrator is RouterImmutables {
     using CalldataDecoder for bytes;
 
@@ -22,16 +21,23 @@ abstract contract V3ToV4Migrator is RouterImmutables {
 
     /// @dev validate if an action is decreaseLiquidity, collect, or burn
     function _isValidAction(bytes4 selector) private pure returns (bool) {
-        return selector == IV3NonfungiblePositionManager.decreaseLiquidity.selector
-            || selector == IV3NonfungiblePositionManager.collect.selector
-            || selector == IV3NonfungiblePositionManager.burn.selector;
+        return
+            selector ==
+            IV3NonfungiblePositionManager.decreaseLiquidity.selector ||
+            selector == IV3NonfungiblePositionManager.collect.selector ||
+            selector == IV3NonfungiblePositionManager.burn.selector;
     }
 
     /// @dev the caller is authorized for the token if its the owner, spender, or operator
-    function _isAuthorizedForToken(address caller, uint256 tokenId) private view returns (bool) {
+    function _isAuthorizedForToken(
+        address caller,
+        uint256 tokenId
+    ) private view returns (bool) {
         address owner = V3_POSITION_MANAGER.ownerOf(tokenId);
-        return caller == owner || V3_POSITION_MANAGER.getApproved(tokenId) == caller
-            || V3_POSITION_MANAGER.isApprovedForAll(owner, caller);
+        return
+            caller == owner ||
+            V3_POSITION_MANAGER.getApproved(tokenId) == caller ||
+            V3_POSITION_MANAGER.isApprovedForAll(owner, caller);
     }
 
     /// @dev check that a call is to the ERC721 permit function
@@ -47,7 +53,10 @@ abstract contract V3ToV4Migrator is RouterImmutables {
     }
 
     /// @dev check that the v3 position manager call is a safe call
-    function _checkV3PositionManagerCall(bytes calldata inputs, address caller) internal view {
+    function _checkV3PositionManagerCall(
+        bytes calldata inputs,
+        address caller
+    ) internal view {
         bytes4 selector;
         assembly {
             selector := calldataload(inputs.offset)
@@ -75,7 +84,9 @@ abstract contract V3ToV4Migrator is RouterImmutables {
     /// of the position-altering Actions, we only allow Actions.MINT
     /// this is because, if a user could be tricked into approving the UniversalRouter for
     /// their position, an attacker could take their fees, or drain their entire position
-    function _checkV4ClPositionManagerCall(bytes calldata inputs) internal view {
+    function _checkV4ClPositionManagerCall(
+        bytes calldata inputs
+    ) internal view {
         bytes4 selector;
         assembly {
             selector := calldataload(inputs.offset)
@@ -97,8 +108,9 @@ abstract contract V3ToV4Migrator is RouterImmutables {
             uint256 action = uint8(actions[actionIndex]);
 
             if (
-                action == Actions.CL_INCREASE_LIQUIDITY || action == Actions.CL_DECREASE_LIQUIDITY
-                    || action == Actions.CL_BURN_POSITION
+                action == Actions.CL_INCREASE_LIQUIDITY ||
+                action == Actions.CL_DECREASE_LIQUIDITY ||
+                action == Actions.CL_BURN_POSITION
             ) {
                 revert OnlyMintAllowed();
             }
@@ -109,7 +121,9 @@ abstract contract V3ToV4Migrator is RouterImmutables {
     /// of the position-altering Actions, we only allow Actions.BIN_ADD_LIQUIDITY
     /// this is because, if a user could be tricked into approving the UniversalRouter for
     /// their position, an attacker could drain their entire position
-    function _checkV4BinPositionManagerCall(bytes calldata inputs) internal view {
+    function _checkV4BinPositionManagerCall(
+        bytes calldata inputs
+    ) internal view {
         bytes4 selector;
         assembly {
             selector := calldataload(inputs.offset)

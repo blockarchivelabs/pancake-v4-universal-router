@@ -29,14 +29,14 @@ import {LiquidityAmounts} from "pancake-v4-periphery/src/pool-cl/libraries/Liqui
 import {PathKey} from "pancake-v4-periphery/src/libraries/PathKey.sol";
 import {CLPool} from "pancake-v4-core/src/pool-cl/libraries/CLPool.sol";
 
-import {BasePancakeSwapV4} from "./BasePancakeSwapV4.sol";
+import {BaseCatalistSwapV4} from "./BaseCatalistSwapV4.sol";
 import {UniversalRouter} from "../../src/UniversalRouter.sol";
 import {IUniversalRouter} from "../../src/interfaces/IUniversalRouter.sol";
 import {Constants} from "../../src/libraries/Constants.sol";
 import {Commands} from "../../src/libraries/Commands.sol";
 import {RouterParameters} from "../../src/base/RouterImmutables.sol";
 
-contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
+contract CLCatalistSwapV4Test is BaseCatalistSwapV4 {
     using CLPoolParametersHelper for bytes32;
     using Planner for Plan;
 
@@ -73,12 +73,35 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
         token1 = MockERC20(Currency.unwrap(currency1));
         token2 = MockERC20(Currency.unwrap(currency2));
 
-        CLPositionDescriptorOffChain pd =
-            new CLPositionDescriptorOffChain("https://pancakeswap.finance/v4/pool-cl/positions/");
-        positionManager = new CLPositionManager(vault, poolManager, permit2, 100_000, pd, IWETH9(address(weth9)));
-        _approvePermit2ForCurrency(address(this), currency0, address(positionManager), permit2);
-        _approvePermit2ForCurrency(address(this), currency1, address(positionManager), permit2);
-        _approvePermit2ForCurrency(address(this), currency2, address(positionManager), permit2);
+        CLPositionDescriptorOffChain pd = new CLPositionDescriptorOffChain(
+            "https://catalist.finance/v4/pool-cl/positions/"
+        );
+        positionManager = new CLPositionManager(
+            vault,
+            poolManager,
+            permit2,
+            100_000,
+            pd,
+            IWETH9(address(weth9))
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency0,
+            address(positionManager),
+            permit2
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency1,
+            address(positionManager),
+            permit2
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency2,
+            address(positionManager),
+            permit2
+        );
 
         RouterParameters memory params = RouterParameters({
             permit2: address(permit2),
@@ -122,7 +145,9 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
             fee: uint24(3000),
             parameters: bytes32(0).setTickSpacing(10)
         });
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_CL_INITIALIZE_POOL)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_CL_INITIALIZE_POOL))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(poolKey1, SQRT_PRICE_1_1);
         router.execute(commands, inputs);
@@ -141,25 +166,29 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
         });
 
         // before
-        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
+        (uint160 sqrtPriceX96, , , ) = poolManager.getSlot0(_poolKey.toId());
         assertEq(sqrtPriceX96, 0);
 
         // initialize
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_CL_INITIALIZE_POOL)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_CL_INITIALIZE_POOL))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(_poolKey, SQRT_PRICE_1_1);
-        snapStart("CLPancakeSwapV4Test#test_v4ClSwap_v4InitializeClPool");
+        snapStart("CLCatalistSwapV4Test#test_v4ClSwap_v4InitializeClPool");
         router.execute(commands, inputs);
         snapEnd();
 
         // verify
-        (sqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
+        (sqrtPriceX96, , , ) = poolManager.getSlot0(_poolKey.toId());
         assertEq(sqrtPriceX96, SQRT_PRICE_1_1);
 
         // initialize again
         vm.expectRevert(
             abi.encodeWithSelector(
-                IUniversalRouter.ExecutionFailed.selector, 0, abi.encodePacked(CLPool.PoolAlreadyInitialized.selector)
+                IUniversalRouter.ExecutionFailed.selector,
+                0,
+                abi.encodePacked(CLPool.PoolAlreadyInitialized.selector)
             )
         );
         router.execute(commands, inputs);
@@ -171,20 +200,29 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
         vm.startPrank(alice);
 
         // prepare v4 swap input
-        ICLRouterBase.CLSwapExactInputSingleParams memory params =
-            ICLRouterBase.CLSwapExactInputSingleParams(poolKey0, true, amountIn, 0, "");
-        plan = Planner.init().add(Actions.CL_SWAP_EXACT_IN_SINGLE, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(poolKey0.currency0, poolKey0.currency1, ActionConstants.MSG_SENDER);
+        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase
+            .CLSwapExactInputSingleParams(poolKey0, true, amountIn, 0, "");
+        plan = Planner.init().add(
+            Actions.CL_SWAP_EXACT_IN_SINGLE,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            poolKey0.currency0,
+            poolKey0.currency1,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.01 ether);
         assertEq(token1.balanceOf(alice), 0 ether);
-        snapStart("CLPancakeSwapV4Test#test_v4ClSwap_ExactInSingle");
+        snapStart("CLCatalistSwapV4Test#test_v4ClSwap_ExactInSingle");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 0 ether);
@@ -206,20 +244,26 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
             poolManager: poolKey0.poolManager,
             parameters: poolKey0.parameters
         });
-        ICLRouterBase.CLSwapExactInputParams memory params =
-            ICLRouterBase.CLSwapExactInputParams(currency0, path, 0.01 ether, 0);
+        ICLRouterBase.CLSwapExactInputParams memory params = ICLRouterBase
+            .CLSwapExactInputParams(currency0, path, 0.01 ether, 0);
         plan = Planner.init().add(Actions.CL_SWAP_EXACT_IN, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(currency0, currency1, ActionConstants.MSG_SENDER);
+        bytes memory data = plan.finalizeSwap(
+            currency0,
+            currency1,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.01 ether);
         assertEq(token1.balanceOf(alice), 0 ether);
-        snapStart("CLPancakeSwapV4Test#test_v4ClSwap_ExactIn_SingleHop");
+        snapStart("CLCatalistSwapV4Test#test_v4ClSwap_ExactIn_SingleHop");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 0 ether);
@@ -249,20 +293,26 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
             poolManager: poolKey1.poolManager,
             parameters: poolKey1.parameters
         });
-        ICLRouterBase.CLSwapExactInputParams memory params =
-            ICLRouterBase.CLSwapExactInputParams(currency0, path, 0.01 ether, 0);
+        ICLRouterBase.CLSwapExactInputParams memory params = ICLRouterBase
+            .CLSwapExactInputParams(currency0, path, 0.01 ether, 0);
         plan = Planner.init().add(Actions.CL_SWAP_EXACT_IN, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(currency0, currency2, ActionConstants.MSG_SENDER);
+        bytes memory data = plan.finalizeSwap(
+            currency0,
+            currency2,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.01 ether);
         assertEq(token2.balanceOf(alice), 0 ether);
-        snapStart("CLPancakeSwapV4Test#test_v4ClSwap_ExactIn_MultiHop");
+        snapStart("CLCatalistSwapV4Test#test_v4ClSwap_ExactIn_MultiHop");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 0 ether);
@@ -275,20 +325,35 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
         vm.startPrank(alice);
 
         // prepare v4 swap input
-        ICLRouterBase.CLSwapExactOutputSingleParams memory params =
-            ICLRouterBase.CLSwapExactOutputSingleParams(poolKey0, true, amountOut, amountOut * 2, "");
-        plan = Planner.init().add(Actions.CL_SWAP_EXACT_OUT_SINGLE, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(poolKey0.currency0, poolKey0.currency1, ActionConstants.MSG_SENDER);
+        ICLRouterBase.CLSwapExactOutputSingleParams
+            memory params = ICLRouterBase.CLSwapExactOutputSingleParams(
+                poolKey0,
+                true,
+                amountOut,
+                amountOut * 2,
+                ""
+            );
+        plan = Planner.init().add(
+            Actions.CL_SWAP_EXACT_OUT_SINGLE,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            poolKey0.currency0,
+            poolKey0.currency1,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.02 ether);
         assertEq(token1.balanceOf(alice), 0 ether);
-        snapStart("CLPancakeSwapV4Test#test_v4ClSwap_ExactOutSingle");
+        snapStart("CLCatalistSwapV4Test#test_v4ClSwap_ExactOutSingle");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 9969849731458956); // around 0.02 eth - 0.01 eth - slippage
@@ -310,20 +375,29 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
             poolManager: poolKey0.poolManager,
             parameters: poolKey0.parameters
         });
-        ICLRouterBase.CLSwapExactOutputParams memory params =
-            ICLRouterBase.CLSwapExactOutputParams(currency1, path, amountOut, amountOut * 2);
-        plan = Planner.init().add(Actions.CL_SWAP_EXACT_OUT, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(currency0, currency1, ActionConstants.MSG_SENDER);
+        ICLRouterBase.CLSwapExactOutputParams memory params = ICLRouterBase
+            .CLSwapExactOutputParams(currency1, path, amountOut, amountOut * 2);
+        plan = Planner.init().add(
+            Actions.CL_SWAP_EXACT_OUT,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            currency0,
+            currency1,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.02 ether);
         assertEq(token1.balanceOf(alice), 0 ether);
-        snapStart("CLPancakeSwapV4Test#test_v4ClSwap_ExactOut_SingleHop");
+        snapStart("CLCatalistSwapV4Test#test_v4ClSwap_ExactOut_SingleHop");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 9969849731458956); // around 0.02 eth - 0.01 eth - slippage
@@ -353,20 +427,29 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
             poolManager: poolKey1.poolManager,
             parameters: poolKey1.parameters
         });
-        ICLRouterBase.CLSwapExactOutputParams memory params =
-            ICLRouterBase.CLSwapExactOutputParams(currency2, path, amountOut, amountOut * 2);
-        plan = Planner.init().add(Actions.CL_SWAP_EXACT_OUT, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(currency0, currency2, ActionConstants.MSG_SENDER);
+        ICLRouterBase.CLSwapExactOutputParams memory params = ICLRouterBase
+            .CLSwapExactOutputParams(currency2, path, amountOut, amountOut * 2);
+        plan = Planner.init().add(
+            Actions.CL_SWAP_EXACT_OUT,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            currency0,
+            currency2,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.02 ether);
         assertEq(token2.balanceOf(alice), 0 ether);
-        snapStart("CLPancakeSwapV4Test#test_v4ClSwap_ExactOut_MultiHop");
+        snapStart("CLCatalistSwapV4Test#test_v4ClSwap_ExactOut_MultiHop");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 9939608377607349);
@@ -380,13 +463,27 @@ contract CLPancakeSwapV4Test is BasePancakeSwapV4 {
 
         uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(tickLower);
         uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
-        uint256 liquidity =
-            LiquidityAmounts.getLiquidityForAmounts(SQRT_PRICE_1_1, sqrtRatioAX96, sqrtRatioBX96, 10 ether, 10 ether); // around 1671 e18 liquidity
+        uint256 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            SQRT_PRICE_1_1,
+            sqrtRatioAX96,
+            sqrtRatioBX96,
+            10 ether,
+            10 ether
+        ); // around 1671 e18 liquidity
 
         Plan memory mintPlan = Planner.init();
         mintPlan.add(
             Actions.CL_MINT_POSITION,
-            abi.encode(key, tickLower, tickUpper, liquidity, type(uint128).max, type(uint128).max, address(this), "")
+            abi.encode(
+                key,
+                tickLower,
+                tickUpper,
+                liquidity,
+                type(uint128).max,
+                type(uint128).max,
+                address(this),
+                ""
+            )
         );
 
         bytes memory calls = mintPlan.finalizeModifyLiquidityWithClose(key);

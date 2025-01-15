@@ -26,14 +26,14 @@ import {IBinPositionManager} from "pancake-v4-periphery/src/pool-bin/interfaces/
 import {PathKey} from "pancake-v4-periphery/src/libraries/PathKey.sol";
 import {BinPool} from "pancake-v4-core/src/pool-bin/libraries/BinPool.sol";
 
-import {BasePancakeSwapV4} from "./BasePancakeSwapV4.sol";
+import {BaseCatalistSwapV4} from "./BaseCatalistSwapV4.sol";
 import {UniversalRouter} from "../../src/UniversalRouter.sol";
 import {IUniversalRouter} from "../../src/interfaces/IUniversalRouter.sol";
 import {Constants} from "../../src/libraries/Constants.sol";
 import {Commands} from "../../src/libraries/Commands.sol";
 import {RouterParameters} from "../../src/base/RouterImmutables.sol";
 
-contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
+contract BinCatalistSwapV4Test is BaseCatalistSwapV4, BinLiquidityHelper {
     using BinPoolParametersHelper for bytes32;
     using Planner for Plan;
 
@@ -70,10 +70,30 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
         token1 = MockERC20(Currency.unwrap(currency1));
         token2 = MockERC20(Currency.unwrap(currency2));
 
-        positionManager = new BinPositionManager(vault, poolManager, permit2, IWETH9(address(weth9)));
-        _approvePermit2ForCurrency(address(this), currency0, address(positionManager), permit2);
-        _approvePermit2ForCurrency(address(this), currency1, address(positionManager), permit2);
-        _approvePermit2ForCurrency(address(this), currency2, address(positionManager), permit2);
+        positionManager = new BinPositionManager(
+            vault,
+            poolManager,
+            permit2,
+            IWETH9(address(weth9))
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency0,
+            address(positionManager),
+            permit2
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency1,
+            address(positionManager),
+            permit2
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency2,
+            address(positionManager),
+            permit2
+        );
 
         RouterParameters memory params = RouterParameters({
             permit2: address(permit2),
@@ -117,7 +137,9 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
             fee: uint24(3000),
             parameters: bytes32(0).setBinStep(10)
         });
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_BIN_INITIALIZE_POOL)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_BIN_INITIALIZE_POOL))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(poolKey1, ACTIVE_ID_1_1);
         router.execute(commands, inputs);
@@ -135,25 +157,29 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
         });
 
         // before
-        (uint24 activeId,,) = poolManager.getSlot0(_poolKey.toId());
+        (uint24 activeId, , ) = poolManager.getSlot0(_poolKey.toId());
         assertEq(activeId, 0);
 
         // initialize
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_BIN_INITIALIZE_POOL)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_BIN_INITIALIZE_POOL))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(_poolKey, ACTIVE_ID_1_1);
-        snapStart("BinPancakeSwapV4Test#test_v4BinSwap_InitializeBinPool");
+        snapStart("BinCatalistSwapV4Test#test_v4BinSwap_InitializeBinPool");
         router.execute(commands, inputs);
         snapEnd();
 
         // verify
-        (activeId,,) = poolManager.getSlot0(_poolKey.toId());
+        (activeId, , ) = poolManager.getSlot0(_poolKey.toId());
         assertEq(activeId, ACTIVE_ID_1_1);
 
         // initialize again
         vm.expectRevert(
             abi.encodeWithSelector(
-                IUniversalRouter.ExecutionFailed.selector, 0, abi.encodePacked(BinPool.PoolAlreadyInitialized.selector)
+                IUniversalRouter.ExecutionFailed.selector,
+                0,
+                abi.encodePacked(BinPool.PoolAlreadyInitialized.selector)
             )
         );
         router.execute(commands, inputs);
@@ -165,19 +191,34 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
         vm.startPrank(alice);
 
         // prepare v4 swap input
-        IBinRouterBase.BinSwapExactInputSingleParams memory params =
-            IBinRouterBase.BinSwapExactInputSingleParams(poolKey0, true, amountIn, 0, "");
-        plan = Planner.init().add(Actions.BIN_SWAP_EXACT_IN_SINGLE, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(poolKey0.currency0, poolKey0.currency1, ActionConstants.MSG_SENDER);
+        IBinRouterBase.BinSwapExactInputSingleParams
+            memory params = IBinRouterBase.BinSwapExactInputSingleParams(
+                poolKey0,
+                true,
+                amountIn,
+                0,
+                ""
+            );
+        plan = Planner.init().add(
+            Actions.BIN_SWAP_EXACT_IN_SINGLE,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            poolKey0.currency0,
+            poolKey0.currency1,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         assertEq(token0.balanceOf(alice), 0.01 ether);
         assertEq(token1.balanceOf(alice), 0 ether);
-        snapStart("BinPancakeSwapV4Test#test_v4BinSwap_ExactInSingle");
+        snapStart("BinCatalistSwapV4Test#test_v4BinSwap_ExactInSingle");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 0 ether);
@@ -198,20 +239,29 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
             poolManager: poolKey0.poolManager,
             parameters: poolKey0.parameters
         });
-        IBinRouterBase.BinSwapExactInputParams memory params =
-            IBinRouterBase.BinSwapExactInputParams(currency0, path, 0.01 ether, 0);
-        plan = Planner.init().add(Actions.BIN_SWAP_EXACT_IN, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(currency0, currency1, ActionConstants.MSG_SENDER);
+        IBinRouterBase.BinSwapExactInputParams memory params = IBinRouterBase
+            .BinSwapExactInputParams(currency0, path, 0.01 ether, 0);
+        plan = Planner.init().add(
+            Actions.BIN_SWAP_EXACT_IN,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            currency0,
+            currency1,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.01 ether);
         assertEq(token1.balanceOf(alice), 0 ether);
-        snapStart("BinPancakeSwapV4Test#test_v4BinSwap_ExactIn_SingleHop");
+        snapStart("BinCatalistSwapV4Test#test_v4BinSwap_ExactIn_SingleHop");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 0 ether);
@@ -241,20 +291,29 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
             poolManager: poolKey1.poolManager,
             parameters: poolKey1.parameters
         });
-        IBinRouterBase.BinSwapExactInputParams memory params =
-            IBinRouterBase.BinSwapExactInputParams(currency0, path, 0.01 ether, 0);
-        plan = Planner.init().add(Actions.BIN_SWAP_EXACT_IN, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(currency0, currency2, ActionConstants.MSG_SENDER);
+        IBinRouterBase.BinSwapExactInputParams memory params = IBinRouterBase
+            .BinSwapExactInputParams(currency0, path, 0.01 ether, 0);
+        plan = Planner.init().add(
+            Actions.BIN_SWAP_EXACT_IN,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            currency0,
+            currency2,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.01 ether);
         assertEq(token2.balanceOf(alice), 0 ether);
-        snapStart("BinPancakeSwapV4Test#test_v4BinSwap_ExactIn_MultiHop");
+        snapStart("BinCatalistSwapV4Test#test_v4BinSwap_ExactIn_MultiHop");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 0 ether);
@@ -267,20 +326,35 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
         vm.startPrank(alice);
 
         // prepare v4 swap input
-        IBinRouterBase.BinSwapExactOutputSingleParams memory params =
-            IBinRouterBase.BinSwapExactOutputSingleParams(poolKey0, true, amountOut, amountOut * 2, "");
-        plan = Planner.init().add(Actions.BIN_SWAP_EXACT_OUT_SINGLE, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(poolKey0.currency0, poolKey0.currency1, ActionConstants.MSG_SENDER);
+        IBinRouterBase.BinSwapExactOutputSingleParams
+            memory params = IBinRouterBase.BinSwapExactOutputSingleParams(
+                poolKey0,
+                true,
+                amountOut,
+                amountOut * 2,
+                ""
+            );
+        plan = Planner.init().add(
+            Actions.BIN_SWAP_EXACT_OUT_SINGLE,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            poolKey0.currency0,
+            poolKey0.currency1,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.02 ether);
         assertEq(token1.balanceOf(alice), 0 ether);
-        snapStart("BinPancakeSwapV4Test#test_v4ClSwap_ExactOutSingle");
+        snapStart("BinCatalistSwapV4Test#test_v4ClSwap_ExactOutSingle");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 9969909729187562); // around 0.02 eth - 0.01 eth - fee
@@ -302,20 +376,34 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
             poolManager: poolKey0.poolManager,
             parameters: poolKey0.parameters
         });
-        IBinRouterBase.BinSwapExactOutputParams memory params =
-            IBinRouterBase.BinSwapExactOutputParams(currency1, path, amountOut, amountOut * 2);
-        plan = Planner.init().add(Actions.BIN_SWAP_EXACT_OUT, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(currency0, currency1, ActionConstants.MSG_SENDER);
+        IBinRouterBase.BinSwapExactOutputParams memory params = IBinRouterBase
+            .BinSwapExactOutputParams(
+                currency1,
+                path,
+                amountOut,
+                amountOut * 2
+            );
+        plan = Planner.init().add(
+            Actions.BIN_SWAP_EXACT_OUT,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            currency0,
+            currency1,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.02 ether);
         assertEq(token1.balanceOf(alice), 0 ether);
-        snapStart("BinPancakeSwapV4Test#test_v4BinSwap_ExactOut_SingleHop");
+        snapStart("BinCatalistSwapV4Test#test_v4BinSwap_ExactOut_SingleHop");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 9969909729187562); // around 0.02 eth - 0.01 eth - slippage
@@ -345,20 +433,34 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
             poolManager: poolKey1.poolManager,
             parameters: poolKey1.parameters
         });
-        IBinRouterBase.BinSwapExactOutputParams memory params =
-            IBinRouterBase.BinSwapExactOutputParams(currency2, path, amountOut, amountOut * 2);
-        plan = Planner.init().add(Actions.BIN_SWAP_EXACT_OUT, abi.encode(params));
-        bytes memory data = plan.finalizeSwap(currency0, currency2, ActionConstants.MSG_SENDER);
+        IBinRouterBase.BinSwapExactOutputParams memory params = IBinRouterBase
+            .BinSwapExactOutputParams(
+                currency2,
+                path,
+                amountOut,
+                amountOut * 2
+            );
+        plan = Planner.init().add(
+            Actions.BIN_SWAP_EXACT_OUT,
+            abi.encode(params)
+        );
+        bytes memory data = plan.finalizeSwap(
+            currency0,
+            currency2,
+            ActionConstants.MSG_SENDER
+        );
 
         // call v4_swap
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_SWAP)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_SWAP))
+        );
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = data;
 
         // gas would be higher as its the first swap
         assertEq(token0.balanceOf(alice), 0.02 ether);
         assertEq(token2.balanceOf(alice), 0 ether);
-        snapStart("BinPancakeSwapV4Test#test_v4BinSwap_ExactOut_MultiHop");
+        snapStart("BinCatalistSwapV4Test#test_v4BinSwap_ExactOut_MultiHop");
         router.execute(commands, inputs);
         snapEnd();
         assertEq(token0.balanceOf(alice), 9939728915935368);
@@ -369,9 +471,19 @@ contract BinPancakeSwapV4Test is BasePancakeSwapV4, BinLiquidityHelper {
     function _mint(PoolKey memory key) private {
         uint24[] memory binIds = getBinIds(ACTIVE_ID_1_1, 1);
         IBinPositionManager.BinAddLiquidityParams memory addParams;
-        addParams = _getAddParams(key, binIds, 10 ether, 10 ether, ACTIVE_ID_1_1, address(this));
+        addParams = _getAddParams(
+            key,
+            binIds,
+            10 ether,
+            10 ether,
+            ACTIVE_ID_1_1,
+            address(this)
+        );
 
-        Plan memory planner = Planner.init().add(Actions.BIN_ADD_LIQUIDITY, abi.encode(addParams));
+        Plan memory planner = Planner.init().add(
+            Actions.BIN_ADD_LIQUIDITY,
+            abi.encode(addParams)
+        );
         bytes memory payload = planner.finalizeModifyLiquidityWithClose(key);
 
         positionManager.modifyLiquidities(payload, block.timestamp + 1);

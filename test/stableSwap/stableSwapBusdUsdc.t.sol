@@ -6,7 +6,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {StableSwapTest} from "./StableSwap.t.sol";
 
 /// @dev StableSwap against this pool: https://bscscan.com/address/0xc2f5b9a3d9138ab2b74d581fc11346219ebf43fe
-///      find more pairs at https://pancakeswap.finance/info?type=stableSwap
+///      find more pairs at https://catalist.finance/info?type=stableSwap
 contract StableSwapBusdUsdcTest is StableSwapTest {
     ERC20 constant USDC = ERC20(0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d);
     ERC20 constant BUSDC = ERC20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);

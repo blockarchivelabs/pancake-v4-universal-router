@@ -1,12 +1,15 @@
-# Pancake v4 universal-router
+<!-- @format -->
+
+# Catalist v4 universal-router
 
 ## Running test
 
 1. Install dependencies with `forge install`
 
-2. Grab a RPC (eg. from nodereal) with history 
+2. Grab a RPC (eg. from nodereal) with history
+
 ```bash
-// testnet fork test for v4, mainnet fork test for v2/v3 
+// testnet fork test for v4, mainnet fork test for v2/v3
 export FORK_URL=https://bsc-mainnet.nodereal.io/v1/xxx
 export TESTNET_FORK_URL=https://bsc-testnet.nodereal.io/v1/xxx
 ```
@@ -17,9 +20,9 @@ export TESTNET_FORK_URL=https://bsc-testnet.nodereal.io/v1/xxx
 
 1. Run `forge update`
 
-## Deploying 
+## Deploying
 
-Ensure `script/deployParameters/Deploy{chain}.s.sol` is updated 
+Ensure `script/deployParameters/Deploy{chain}.s.sol` is updated
 
 ```bash
 // set rpc url
@@ -32,8 +35,8 @@ export PRIVATE_KEY=0x
 forge script script/deployParameters/DeployArbitrum.s.sol:DeployArbitrum -vvv \
     --rpc-url $RPC_URL \
     --broadcast \
-    --slow 
-``` 
+    --slow
+```
 
 Remember to call `.acceptOwnership()` to be the owner of universal router
 
@@ -50,6 +53,7 @@ forge verify-contract <address> UniversalRouter --watch --chain 97 --constructor
 The file `example_args.txt` contains all the parameters specified in RouterParams.
 
 Example
+
 ```solidity
 params = RouterParameters({
     permit2: 0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768,

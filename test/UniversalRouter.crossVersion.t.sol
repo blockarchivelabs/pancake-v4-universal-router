@@ -26,30 +26,37 @@ import {CLPositionDescriptorOffChain} from "pancake-v4-periphery/src/pool-cl/CLP
 import {CLPositionManager} from "pancake-v4-periphery/src/pool-cl/CLPositionManager.sol";
 import {BinPositionManager} from "pancake-v4-periphery/src/pool-bin/BinPositionManager.sol";
 import {Actions} from "pancake-v4-periphery/src/libraries/Actions.sol";
-import {IV3NonfungiblePositionManager} from
-    "pancake-v4-periphery/src/interfaces/external/IV3NonfungiblePositionManager.sol";
+import {IV3NonfungiblePositionManager} from "pancake-v4-periphery/src/interfaces/external/IV3NonfungiblePositionManager.sol";
 import {IERC721Permit} from "pancake-v4-periphery/src/pool-cl/interfaces/IERC721Permit.sol";
 import {IPositionManager} from "pancake-v4-periphery/src/interfaces/IPositionManager.sol";
 import {IBinPositionManager} from "pancake-v4-periphery/src/pool-bin/interfaces/IBinPositionManager.sol";
 import {OldVersionHelper} from "pancake-v4-periphery/test/helpers/OldVersionHelper.sol";
 import {BinLiquidityHelper} from "pancake-v4-periphery/test/pool-bin/helper/BinLiquidityHelper.sol";
 
-import {IPancakeV3PoolDeployer} from "../src/modules/pancakeswap/v3/interfaces/IPancakeV3PoolDeployer.sol";
-import {IPancakeV3Factory} from "../src/modules/pancakeswap/v3/interfaces/IPancakeV3Factory.sol";
+import {ICatalistV3PoolDeployer} from "../src/modules/catalist/v3/interfaces/ICatalistV3PoolDeployer.sol";
+import {ICatalistV3Factory} from "../src/modules/catalist/v3/interfaces/ICatalistV3Factory.sol";
 import {IUniversalRouter} from "../src/interfaces/IUniversalRouter.sol";
 import {Commands} from "../src/libraries/Commands.sol";
 import {RouterParameters} from "../src/base/RouterImmutables.sol";
 import {Dispatcher} from "../src/base/Dispatcher.sol";
 import {UniversalRouter} from "../src/UniversalRouter.sol";
-import {BasePancakeSwapV4} from "./v4/BasePancakeSwapV4.sol";
+import {BaseCatalistSwapV4} from "./v4/BaseCatalistSwapV4.sol";
 import {ICLRouterBase} from "pancake-v4-periphery/src/interfaces/IV4Router.sol";
 import {TickMath} from "pancake-v4-core/src/pool-cl/libraries/TickMath.sol";
 
-interface IPancakeV3LikePairFactory {
-    function createPool(address tokenA, address tokenB, uint24 fee) external returns (address pool);
+interface ICatalistV3LikePairFactory {
+    function createPool(
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) external returns (address pool);
 }
 
-contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper, BinLiquidityHelper {
+contract UniversalRouterCrossVersionTest is
+    BaseCatalistSwapV4,
+    OldVersionHelper,
+    BinLiquidityHelper
+{
     using BinPoolParametersHelper for bytes32;
     using CLPoolParametersHelper for bytes32;
     using Planner for Plan;
@@ -93,15 +100,29 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         ///////////////////////////////////
         //////////// v3 setup /////////////
         ///////////////////////////////////
-        address deployer = createContractThroughBytecode(_getDeployerBytecodePath());
-        IPancakeV3LikePairFactory v3Factory = IPancakeV3LikePairFactory(
-            createContractThroughBytecode(_getFactoryBytecodePath(), toBytes32(address(deployer)))
+        address deployer = createContractThroughBytecode(
+            _getDeployerBytecodePath()
         );
-        (bool success,) = deployer.call(abi.encodeWithSignature("setFactoryAddress(address)", address(v3Factory)));
+        ICatalistV3LikePairFactory v3Factory = ICatalistV3LikePairFactory(
+            createContractThroughBytecode(
+                _getFactoryBytecodePath(),
+                toBytes32(address(deployer))
+            )
+        );
+        (bool success, ) = deployer.call(
+            abi.encodeWithSignature(
+                "setFactoryAddress(address)",
+                address(v3Factory)
+            )
+        );
         require(success, "setFactoryAddress failed");
         v3Nfpm = IV3NonfungiblePositionManager(
             createContractThroughBytecode(
-                _getNfpmBytecodePath(), toBytes32(deployer), toBytes32(address(v3Factory)), toBytes32(address(weth)), 0
+                _getNfpmBytecodePath(),
+                toBytes32(deployer),
+                toBytes32(address(v3Factory)),
+                toBytes32(address(weth)),
+                0
             )
         );
 
@@ -114,10 +135,23 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         vault.registerApp(address(binPoolManager));
         vault.registerApp(address(clPoolManager));
 
-        binPositionManager = new BinPositionManager(vault, binPoolManager, permit2, IWETH9(address(weth)));
-        CLPositionDescriptorOffChain pd =
-            new CLPositionDescriptorOffChain("https://pancakeswap.finance/v4/pool-cl/positions/");
-        clPositionManager = new CLPositionManager(vault, clPoolManager, permit2, 100_000, pd, IWETH9(address(weth)));
+        binPositionManager = new BinPositionManager(
+            vault,
+            binPoolManager,
+            permit2,
+            IWETH9(address(weth))
+        );
+        CLPositionDescriptorOffChain pd = new CLPositionDescriptorOffChain(
+            "https://catalist.finance/v4/pool-cl/positions/"
+        );
+        clPositionManager = new CLPositionManager(
+            vault,
+            clPoolManager,
+            permit2,
+            100_000,
+            pd,
+            IWETH9(address(weth))
+        );
 
         ///////////////////////////////////
         //////////// Router setup /////////////
@@ -129,7 +163,9 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
             v3Factory: address(v3Factory),
             v3Deployer: deployer,
             v2InitCodeHash: bytes32(0),
-            v3InitCodeHash: bytes32(0x6ce8eb472fa82df5469c6ab6d485f17c3ad13c8cd7af59b3d4a8026c5ce0f7e2),
+            v3InitCodeHash: bytes32(
+                0x6ce8eb472fa82df5469c6ab6d485f17c3ad13c8cd7af59b3d4a8026c5ce0f7e2
+            ),
             stableFactory: address(0),
             stableInfo: address(0),
             v4Vault: address(vault),
@@ -140,9 +176,24 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
             v4BinPositionManager: address(binPositionManager)
         });
         router = new UniversalRouter(params);
-        _approvePermit2ForCurrency(address(this), currency0, address(router), permit2);
-        _approvePermit2ForCurrency(address(this), currency1, address(router), permit2);
-        _approvePermit2ForCurrency(address(this), Currency.wrap(address(weth)), address(router), permit2);
+        _approvePermit2ForCurrency(
+            address(this),
+            currency0,
+            address(router),
+            permit2
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            currency1,
+            address(router),
+            permit2
+        );
+        _approvePermit2ForCurrency(
+            address(this),
+            Currency.wrap(address(weth)),
+            address(router),
+            permit2
+        );
 
         ///////////////////////////////////
         //////////// Add Liquidity /////////////
@@ -152,9 +203,17 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         _mintV3Liquidity(address(usdt), address(weth), liquidityProvider);
 
         // add liquidity to v4 usdc-eth cl-pool
-        clPoolKeyWithETH = _mintV4CLLiquidity(address(usdc), address(0), liquidityProvider);
+        clPoolKeyWithETH = _mintV4CLLiquidity(
+            address(usdc),
+            address(0),
+            liquidityProvider
+        );
         // add liquidity to v4 usdc-weth cl-pool
-        clPoolKeyWithWrappedETH = _mintV4CLLiquidity(address(usdc), address(weth), liquidityProvider);
+        clPoolKeyWithWrappedETH = _mintV4CLLiquidity(
+            address(usdc),
+            address(weth),
+            liquidityProvider
+        );
     }
 
     /// @dev case0:
@@ -164,7 +223,12 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         // 0. user starts with 1 ether USDT
         address trader = makeAddr("trader");
         _deal(address(usdt), trader, 1 ether);
-        _approvePermit2ForCurrency(trader, Currency.wrap(address(usdt)), address(router), permit2);
+        _approvePermit2ForCurrency(
+            trader,
+            Currency.wrap(address(usdt)),
+            address(router),
+            permit2
+        );
 
         vm.startPrank(trader);
 
@@ -179,12 +243,22 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         bytes[] memory inputs = new bytes[](3);
 
         // 2.1. prepare v3 exact in params (i.e. USDT -> WETH):
-        bytes memory path = abi.encodePacked(address(usdt), LP_FEE, address(weth));
+        bytes memory path = abi.encodePacked(
+            address(usdt),
+            LP_FEE,
+            address(weth)
+        );
         // address recipient = ADDRESS_THIS to make sure WETH is send back to universal router
         // uint256 amountIn;
         // uint256 amountOutMin = 0 since we only need to check at the very end
         // bool payerIsUser = true since user is paying USDT
-        inputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, 1 ether, 0, path, true);
+        inputs[0] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            1 ether,
+            0,
+            path,
+            true
+        );
 
         // 2.2. unwrap WETH to ETH:
 
@@ -199,22 +273,36 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         // Currency currency = ETH
         // uint256 amount = CONTRACT_BALANCE
         // bool payerIsUser = false i.e. use the ETH we just received from unwrapping WETH
-        planner.add(Actions.SETTLE, abi.encode(CurrencyLibrary.NATIVE, ActionConstants.CONTRACT_BALANCE, false));
+        planner.add(
+            Actions.SETTLE,
+            abi.encode(
+                CurrencyLibrary.NATIVE,
+                ActionConstants.CONTRACT_BALANCE,
+                false
+            )
+        );
 
         // 2.3.2. v4 swap params
-        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
-            poolKey: clPoolKeyWithETH,
-            zeroForOne: true, // token0 is ETH
-            // OPEN_DELTA indicates using the amount from vault delta
-            amountIn: ActionConstants.OPEN_DELTA,
-            amountOutMinimum: 0.8 ether,
-            hookData: new bytes(0)
-        });
+        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase
+            .CLSwapExactInputSingleParams({
+                poolKey: clPoolKeyWithETH,
+                zeroForOne: true, // token0 is ETH
+                // OPEN_DELTA indicates using the amount from vault delta
+                amountIn: ActionConstants.OPEN_DELTA,
+                amountOutMinimum: 0.8 ether,
+                hookData: new bytes(0)
+            });
         planner.add(Actions.CL_SWAP_EXACT_IN_SINGLE, abi.encode(params));
 
         // 2.3.3. sweep all the tokens if any
-        planner.add(Actions.TAKE_ALL, abi.encode(clPoolKeyWithETH.currency0, 0));
-        planner.add(Actions.TAKE_ALL, abi.encode(clPoolKeyWithETH.currency1, 0));
+        planner.add(
+            Actions.TAKE_ALL,
+            abi.encode(clPoolKeyWithETH.currency0, 0)
+        );
+        planner.add(
+            Actions.TAKE_ALL,
+            abi.encode(clPoolKeyWithETH.currency1, 0)
+        );
 
         inputs[2] = planner.encode();
 
@@ -240,7 +328,12 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         // 0. user starts with 1 ether USDT
         address trader = makeAddr("trader");
         _deal(address(usdt), trader, 1 ether);
-        _approvePermit2ForCurrency(trader, Currency.wrap(address(usdt)), address(router), permit2);
+        _approvePermit2ForCurrency(
+            trader,
+            Currency.wrap(address(usdt)),
+            address(router),
+            permit2
+        );
 
         vm.startPrank(trader);
 
@@ -254,12 +347,22 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         bytes[] memory inputs = new bytes[](2);
 
         // 2.1. prepare v3 exact in params (i.e. USDT -> WETH):
-        bytes memory path = abi.encodePacked(address(usdt), LP_FEE, address(weth));
+        bytes memory path = abi.encodePacked(
+            address(usdt),
+            LP_FEE,
+            address(weth)
+        );
         // address recipient = ADDRESS_THIS to make sure WETH is send back to universal router
         // uint256 amountIn;
         // uint256 amountOutMin = 0 since we only need to check at the very end
         // bool payerIsUser = true since user is paying USDT
-        inputs[0] = abi.encode(ActionConstants.ADDRESS_THIS, 1 ether, 0, path, true);
+        inputs[0] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            1 ether,
+            0,
+            path,
+            true
+        );
 
         // 2.2. prepare v4 exact in params (i.e. WETH -> USDC)
         Plan memory planner = Planner.init();
@@ -268,23 +371,38 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         // Currency currency = WETH
         // uint256 amount = CONTRACT_BALANCE
         // bool payerIsUser = false i.e. use the WETH we just received from v3Swap
-        planner.add(Actions.SETTLE, abi.encode(Currency.wrap(address(weth)), ActionConstants.CONTRACT_BALANCE, false));
+        planner.add(
+            Actions.SETTLE,
+            abi.encode(
+                Currency.wrap(address(weth)),
+                ActionConstants.CONTRACT_BALANCE,
+                false
+            )
+        );
 
         // 2.2.2. v4 swap params
-        bool zeroForOne = Currency.unwrap(clPoolKeyWithWrappedETH.currency0) == address(weth);
-        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
-            poolKey: clPoolKeyWithWrappedETH,
-            zeroForOne: zeroForOne,
-            // OPEN_DELTA indicates using the amount from vault delta
-            amountIn: ActionConstants.OPEN_DELTA,
-            amountOutMinimum: 0.8 ether,
-            hookData: new bytes(0)
-        });
+        bool zeroForOne = Currency.unwrap(clPoolKeyWithWrappedETH.currency0) ==
+            address(weth);
+        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase
+            .CLSwapExactInputSingleParams({
+                poolKey: clPoolKeyWithWrappedETH,
+                zeroForOne: zeroForOne,
+                // OPEN_DELTA indicates using the amount from vault delta
+                amountIn: ActionConstants.OPEN_DELTA,
+                amountOutMinimum: 0.8 ether,
+                hookData: new bytes(0)
+            });
         planner.add(Actions.CL_SWAP_EXACT_IN_SINGLE, abi.encode(params));
 
         // 2.3.3. sweep all the tokens if any
-        planner.add(Actions.TAKE_ALL, abi.encode(clPoolKeyWithWrappedETH.currency0, 0));
-        planner.add(Actions.TAKE_ALL, abi.encode(clPoolKeyWithWrappedETH.currency1, 0));
+        planner.add(
+            Actions.TAKE_ALL,
+            abi.encode(clPoolKeyWithWrappedETH.currency0, 0)
+        );
+        planner.add(
+            Actions.TAKE_ALL,
+            abi.encode(clPoolKeyWithWrappedETH.currency1, 0)
+        );
 
         inputs[1] = planner.encode();
 
@@ -310,7 +428,12 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         // 0. user starts with 1 ether usdc
         address trader = makeAddr("trader");
         _deal(address(usdc), trader, 1 ether);
-        _approvePermit2ForCurrency(trader, Currency.wrap(address(usdc)), address(router), permit2);
+        _approvePermit2ForCurrency(
+            trader,
+            Currency.wrap(address(usdc)),
+            address(router),
+            permit2
+        );
 
         vm.startPrank(trader);
 
@@ -329,39 +452,60 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         Plan memory planner = Planner.init();
 
         // 2.1.1. v4 swap params
-        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
-            poolKey: clPoolKeyWithETH,
-            zeroForOne: false, // token0 is ETH
-            amountIn: 1 ether,
-            // we only need to check at the very end
-            amountOutMinimum: 0,
-            hookData: new bytes(0)
-        });
+        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase
+            .CLSwapExactInputSingleParams({
+                poolKey: clPoolKeyWithETH,
+                zeroForOne: false, // token0 is ETH
+                amountIn: 1 ether,
+                // we only need to check at the very end
+                amountOutMinimum: 0,
+                hookData: new bytes(0)
+            });
         planner.add(Actions.CL_SWAP_EXACT_IN_SINGLE, abi.encode(params));
 
         // 2.1.2. withdraw ETH from vault, make sure all the amount is taken to the router
         planner.add(
             Actions.TAKE,
-            abi.encode(clPoolKeyWithETH.currency0, ActionConstants.ADDRESS_THIS, ActionConstants.OPEN_DELTA)
+            abi.encode(
+                clPoolKeyWithETH.currency0,
+                ActionConstants.ADDRESS_THIS,
+                ActionConstants.OPEN_DELTA
+            )
         );
 
         // 2.1.3. pay USDC to vault, at most 1 ether
-        planner.add(Actions.SETTLE_ALL, abi.encode(clPoolKeyWithETH.currency1, 1 ether));
+        planner.add(
+            Actions.SETTLE_ALL,
+            abi.encode(clPoolKeyWithETH.currency1, 1 ether)
+        );
 
         inputs[0] = planner.encode();
 
         // 2.2. wrap ETH to WETH:
         // address recipient = ADDRESS_THIS to make sure WETH is send back to universal router;
         // uint256 amount = ActionConstants.CONTRACT_BALANCE to make sure all the ETH from v4 is wrapped
-        inputs[1] = abi.encode(ActionConstants.ADDRESS_THIS, ActionConstants.CONTRACT_BALANCE);
+        inputs[1] = abi.encode(
+            ActionConstants.ADDRESS_THIS,
+            ActionConstants.CONTRACT_BALANCE
+        );
 
         // 2.3. prepare v3 exact in params (i.e. WETH -> USDT):
-        bytes memory path = abi.encodePacked(address(weth), LP_FEE, address(usdt));
+        bytes memory path = abi.encodePacked(
+            address(weth),
+            LP_FEE,
+            address(usdt)
+        );
         // address recipient = MSG_SENDER to make sure USDT is send to trader
         // uint256 amountIn = CONTRACT_BALANCE
         // uint256 amountOutMin = 0.8 ether, make sure user receives at least 0.8 ether usdt
         // bool payerIsUser = false, since we are using weth balance from universal router itself
-        inputs[2] = abi.encode(ActionConstants.MSG_SENDER, ActionConstants.CONTRACT_BALANCE, 0.8 ether, path, false);
+        inputs[2] = abi.encode(
+            ActionConstants.MSG_SENDER,
+            ActionConstants.CONTRACT_BALANCE,
+            0.8 ether,
+            path,
+            false
+        );
 
         // 2.4 sweep in case partial fulfilled swap
         // address token;
@@ -391,7 +535,12 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         // 0. user starts with 1 ether usdc
         address trader = makeAddr("trader");
         _deal(address(usdc), trader, 1 ether);
-        _approvePermit2ForCurrency(trader, Currency.wrap(address(usdc)), address(router), permit2);
+        _approvePermit2ForCurrency(
+            trader,
+            Currency.wrap(address(usdc)),
+            address(router),
+            permit2
+        );
 
         vm.startPrank(trader);
 
@@ -409,35 +558,54 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         Plan memory planner = Planner.init();
 
         // 2.1.1. v4 swap params
-        bool zeroForOne = Currency.unwrap(clPoolKeyWithWrappedETH.currency0) != address(weth);
-        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
-            poolKey: clPoolKeyWithWrappedETH,
-            zeroForOne: zeroForOne,
-            amountIn: 1 ether,
-            // we only need to check at the very end
-            amountOutMinimum: 0,
-            hookData: new bytes(0)
-        });
+        bool zeroForOne = Currency.unwrap(clPoolKeyWithWrappedETH.currency0) !=
+            address(weth);
+        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase
+            .CLSwapExactInputSingleParams({
+                poolKey: clPoolKeyWithWrappedETH,
+                zeroForOne: zeroForOne,
+                amountIn: 1 ether,
+                // we only need to check at the very end
+                amountOutMinimum: 0,
+                hookData: new bytes(0)
+            });
         planner.add(Actions.CL_SWAP_EXACT_IN_SINGLE, abi.encode(params));
 
         // 2.1.2. withdraw WETH from vault, make sure all the amount is taken to the router
         planner.add(
             Actions.TAKE,
-            abi.encode(clPoolKeyWithWrappedETH.currency0, ActionConstants.ADDRESS_THIS, ActionConstants.OPEN_DELTA)
+            abi.encode(
+                clPoolKeyWithWrappedETH.currency0,
+                ActionConstants.ADDRESS_THIS,
+                ActionConstants.OPEN_DELTA
+            )
         );
 
         // 2.1.3. pay USDC to vault, at most 1 ether
-        planner.add(Actions.SETTLE_ALL, abi.encode(clPoolKeyWithWrappedETH.currency1, 1 ether));
+        planner.add(
+            Actions.SETTLE_ALL,
+            abi.encode(clPoolKeyWithWrappedETH.currency1, 1 ether)
+        );
 
         inputs[0] = planner.encode();
 
         // 2.2. prepare v3 exact in params (i.e. WETH -> USDT):
-        bytes memory path = abi.encodePacked(address(weth), LP_FEE, address(usdt));
+        bytes memory path = abi.encodePacked(
+            address(weth),
+            LP_FEE,
+            address(usdt)
+        );
         // address recipient = MSG_SENDER to make sure USDT is send to trader
         // uint256 amountIn = CONTRACT_BALANCE
         // uint256 amountOutMin = 0.8 ether, make sure user receives at least 0.8 ether usdt
         // bool payerIsUser = false, since we are using weth balance from universal router itself
-        inputs[1] = abi.encode(ActionConstants.MSG_SENDER, ActionConstants.CONTRACT_BALANCE, 0.8 ether, path, false);
+        inputs[1] = abi.encode(
+            ActionConstants.MSG_SENDER,
+            ActionConstants.CONTRACT_BALANCE,
+            0.8 ether,
+            path,
+            false
+        );
 
         // 2.3 sweep in case partial fulfilled swap
         // address token;
@@ -461,7 +629,11 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
     }
 
     /// @dev add 10 eth liquidity to v3 pool with 1:1 price at -100, to 100 tick range
-    function _mintV3Liquidity(address _token0, address _token1, address recipient) internal {
+    function _mintV3Liquidity(
+        address _token0,
+        address _token1,
+        address recipient
+    ) internal {
         // make sure token pair is in correct order
         if (_token0 > _token1) {
             (_token0, _token1) = (_token1, _token0);
@@ -473,28 +645,35 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
         MockERC20(_token0).approve(address(v3Nfpm), type(uint256).max);
         MockERC20(_token1).approve(address(v3Nfpm), type(uint256).max);
 
-        v3Nfpm.createAndInitializePoolIfNecessary(_token0, _token1, LP_FEE, SQRT_PRICE_1_1);
-        IV3NonfungiblePositionManager.MintParams memory mintParams = IV3NonfungiblePositionManager.MintParams({
-            token0: _token0,
-            token1: _token1,
-            fee: LP_FEE,
-            tickLower: -100,
-            tickUpper: 100,
-            amount0Desired: 10 ether,
-            amount1Desired: 10 ether,
-            amount0Min: 0,
-            amount1Min: 0,
-            recipient: recipient,
-            deadline: block.timestamp + 100
-        });
+        v3Nfpm.createAndInitializePoolIfNecessary(
+            _token0,
+            _token1,
+            LP_FEE,
+            SQRT_PRICE_1_1
+        );
+        IV3NonfungiblePositionManager.MintParams
+            memory mintParams = IV3NonfungiblePositionManager.MintParams({
+                token0: _token0,
+                token1: _token1,
+                fee: LP_FEE,
+                tickLower: -100,
+                tickUpper: 100,
+                amount0Desired: 10 ether,
+                amount1Desired: 10 ether,
+                amount0Min: 0,
+                amount1Min: 0,
+                recipient: recipient,
+                deadline: block.timestamp + 100
+            });
 
         v3Nfpm.mint(mintParams);
     }
 
-    function _mintV4CLLiquidity(address _token0, address _token1, address recipient)
-        internal
-        returns (PoolKey memory key)
-    {
+    function _mintV4CLLiquidity(
+        address _token0,
+        address _token1,
+        address recipient
+    ) internal returns (PoolKey memory key) {
         // make sure token pair is in correct order
         if (_token0 > _token1) {
             (_token0, _token1) = (_token1, _token0);
@@ -516,17 +695,39 @@ contract UniversalRouterCrossVersionTest is BasePancakeSwapV4, OldVersionHelper,
 
         // prep position manager action to mint liquidity
         Plan memory planner = Planner.init();
-        planner.add(Actions.CL_MINT_POSITION, abi.encode(key, -120, 120, 1000 ether, 10 ether, 10 ether, recipient, ""));
-        planner.add(Actions.SETTLE, abi.encode(key.currency0, ActionConstants.OPEN_DELTA, false)); // deduct from universal router
-        planner.add(Actions.SETTLE, abi.encode(key.currency1, ActionConstants.OPEN_DELTA, false)); // deduct from universal router
+        planner.add(
+            Actions.CL_MINT_POSITION,
+            abi.encode(
+                key,
+                -120,
+                120,
+                1000 ether,
+                10 ether,
+                10 ether,
+                recipient,
+                ""
+            )
+        );
+        planner.add(
+            Actions.SETTLE,
+            abi.encode(key.currency0, ActionConstants.OPEN_DELTA, false)
+        ); // deduct from universal router
+        planner.add(
+            Actions.SETTLE,
+            abi.encode(key.currency1, ActionConstants.OPEN_DELTA, false)
+        ); // deduct from universal router
         planner.add(Actions.SWEEP, abi.encode(key.currency0, recipient));
         planner.add(Actions.SWEEP, abi.encode(key.currency1, recipient));
 
         // prep universal router actions
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V4_CL_POSITION_CALL)));
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.V4_CL_POSITION_CALL))
+        );
         bytes[] memory inputs = new bytes[](1);
-        inputs[0] =
-            abi.encodePacked(IPositionManager.modifyLiquidities.selector, abi.encode(planner.encode(), block.timestamp));
+        inputs[0] = abi.encodePacked(
+            IPositionManager.modifyLiquidities.selector,
+            abi.encode(planner.encode(), block.timestamp)
+        );
 
         router.execute(commands, inputs);
     }

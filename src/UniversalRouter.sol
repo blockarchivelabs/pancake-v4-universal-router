@@ -5,18 +5,29 @@ pragma solidity 0.8.26;
 // Command implementations
 import {Dispatcher} from "./base/Dispatcher.sol";
 import {RouterParameters, RouterImmutables} from "./base/RouterImmutables.sol";
-import {V4SwapRouter} from "./modules/pancakeswap/v4/V4SwapRouter.sol";
+import {V4SwapRouter} from "./modules/huskey/v4/V4SwapRouter.sol";
 import {Commands} from "./libraries/Commands.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {IUniversalRouter} from "./interfaces/IUniversalRouter.sol";
-import {StableSwapRouter} from "./modules/pancakeswap/StableSwapRouter.sol";
+import {StableSwapRouter} from "./modules/huskey/StableSwapRouter.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract UniversalRouter is RouterImmutables, IUniversalRouter, Dispatcher, Pausable {
-    constructor(RouterParameters memory params)
+contract UniversalRouter is
+    RouterImmutables,
+    IUniversalRouter,
+    Dispatcher,
+    Pausable
+{
+    constructor(
+        RouterParameters memory params
+    )
         RouterImmutables(params)
         StableSwapRouter(params.stableFactory, params.stableInfo)
-        V4SwapRouter(params.v4Vault, params.v4ClPoolManager, params.v4BinPoolManager)
+        V4SwapRouter(
+            params.v4Vault,
+            params.v4ClPoolManager,
+            params.v4BinPoolManager
+        )
     {}
 
     modifier checkDeadline(uint256 deadline) {
@@ -26,33 +37,35 @@ contract UniversalRouter is RouterImmutables, IUniversalRouter, Dispatcher, Paus
 
     /// @notice To receive ETH from WETH
     receive() external payable {
-        if (msg.sender != address(WETH9) && msg.sender != address(vault)) revert InvalidEthSender();
+        if (msg.sender != address(WETH9) && msg.sender != address(vault))
+            revert InvalidEthSender();
     }
 
     /// @inheritdoc IUniversalRouter
-    function execute(bytes calldata commands, bytes[] calldata inputs, uint256 deadline)
-        external
-        payable
-        checkDeadline(deadline)
-    {
+    function execute(
+        bytes calldata commands,
+        bytes[] calldata inputs,
+        uint256 deadline
+    ) external payable checkDeadline(deadline) {
         execute(commands, inputs);
     }
 
     /// @inheritdoc Dispatcher
-    function execute(bytes calldata commands, bytes[] calldata inputs)
-        public
-        payable
-        override
-        isNotLocked
-        whenNotPaused
-    {
+    function execute(
+        bytes calldata commands,
+        bytes[] calldata inputs
+    ) public payable override isNotLocked whenNotPaused {
         bool success;
         bytes memory output;
         uint256 numCommands = commands.length;
         if (inputs.length != numCommands) revert LengthMismatch();
 
         // loop through all given commands, execute them and pass along outputs as defined
-        for (uint256 commandIndex = 0; commandIndex < numCommands; commandIndex++) {
+        for (
+            uint256 commandIndex = 0;
+            commandIndex < numCommands;
+            commandIndex++
+        ) {
             bytes1 command = commands[commandIndex];
 
             bytes calldata input = inputs[commandIndex];
@@ -60,7 +73,10 @@ contract UniversalRouter is RouterImmutables, IUniversalRouter, Dispatcher, Paus
             (success, output) = dispatch(command, input);
 
             if (!success && successRequired(command)) {
-                revert ExecutionFailed({commandIndex: commandIndex, message: output});
+                revert ExecutionFailed({
+                    commandIndex: commandIndex,
+                    message: output
+                });
             }
         }
     }

@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 /// @title Events emitted by a pool
 /// @notice Contains all events emitted by the pool
-interface IPancakeV3PoolEvents {
+interface IHuskeyV3PoolEvents {
     /// @notice Emitted exactly once by a pool when #initialize is first called on the pool
     /// @dev Mint/Burn/Swap cannot be emitted by the pool before Initialize
     /// @param sqrtPriceX96 The initial sqrt price of the pool, as a Q64.96
@@ -105,7 +105,8 @@ interface IPancakeV3PoolEvents {
     /// @param observationCardinalityNextOld The previous value of the next observation cardinality
     /// @param observationCardinalityNextNew The updated value of the next observation cardinality
     event IncreaseObservationCardinalityNext(
-        uint16 observationCardinalityNextOld, uint16 observationCardinalityNextNew
+        uint16 observationCardinalityNextOld,
+        uint16 observationCardinalityNextNew
     );
 
     /// @notice Emitted when the protocol fee is changed by the pool
@@ -114,7 +115,10 @@ interface IPancakeV3PoolEvents {
     /// @param feeProtocol0New The updated value of the token0 protocol fee
     /// @param feeProtocol1New The updated value of the token1 protocol fee
     event SetFeeProtocol(
-        uint32 feeProtocol0Old, uint32 feeProtocol1Old, uint32 feeProtocol0New, uint32 feeProtocol1New
+        uint32 feeProtocol0Old,
+        uint32 feeProtocol1Old,
+        uint32 feeProtocol0New,
+        uint32 feeProtocol1New
     );
 
     /// @notice Emitted when the collected protocol fees are withdrawn by the factory owner
@@ -122,5 +126,10 @@ interface IPancakeV3PoolEvents {
     /// @param recipient The address that receives the collected protocol fees
     /// @param amount0 The amount of token0 protocol fees that is withdrawn
     /// @param amount0 The amount of token1 protocol fees that is withdrawn
-    event CollectProtocol(address indexed sender, address indexed recipient, uint128 amount0, uint128 amount1);
+    event CollectProtocol(
+        address indexed sender,
+        address indexed recipient,
+        uint128 amount0,
+        uint128 amount1
+    );
 }

@@ -2,8 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {IV3NonfungiblePositionManager} from
-    "pancake-v4-periphery/src/interfaces/external/IV3NonfungiblePositionManager.sol";
+import {IV3NonfungiblePositionManager} from "pancake-v4-periphery/src/interfaces/external/IV3NonfungiblePositionManager.sol";
 import {IPositionManager} from "pancake-v4-periphery/src/interfaces/IPositionManager.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IWETH9} from "pancake-v4-periphery/src/interfaces/external/IWETH9.sol";
@@ -39,19 +38,19 @@ contract RouterImmutables {
     /// @dev Permit2 address
     IPermit2 internal immutable PERMIT2;
 
-    /// @dev The address of PancakeSwapV2Factory
+    /// @dev The address of CatalistSwapV2Factory
     address internal immutable PANCAKESWAP_V2_FACTORY;
 
-    /// @dev The PancakeSwapV2Pair initcodehash
+    /// @dev The CatalistSwapV2Pair initcodehash
     bytes32 internal immutable PANCAKESWAP_V2_PAIR_INIT_CODE_HASH;
 
-    /// @dev The address of PancakeSwapV3Factory
+    /// @dev The address of CatalistSwapV3Factory
     address internal immutable PANCAKESWAP_V3_FACTORY;
 
-    /// @dev The PancakeSwapV3Pool initcodehash
+    /// @dev The CatalistSwapV3Pool initcodehash
     bytes32 internal immutable PANCAKESWAP_V3_POOL_INIT_CODE_HASH;
 
-    /// @dev The address of PancakeSwap V3 Deployer
+    /// @dev The address of CatalistSwap V3 Deployer
     address internal immutable PANCAKESWAP_V3_DEPLOYER;
 
     /// @dev v3PositionManager address
@@ -71,7 +70,9 @@ contract RouterImmutables {
         PANCAKESWAP_V3_FACTORY = params.v3Factory;
         PANCAKESWAP_V3_POOL_INIT_CODE_HASH = params.v3InitCodeHash;
         PANCAKESWAP_V3_DEPLOYER = params.v3Deployer;
-        V3_POSITION_MANAGER = IV3NonfungiblePositionManager(params.v3NFTPositionManager);
+        V3_POSITION_MANAGER = IV3NonfungiblePositionManager(
+            params.v3NFTPositionManager
+        );
         V4_CL_POSITION_MANAGER = IPositionManager(params.v4ClPositionManager);
         V4_BIN_POSITION_MANAGER = IPositionManager(params.v4BinPositionManager);
     }

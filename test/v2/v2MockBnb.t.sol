@@ -3,9 +3,9 @@ pragma solidity ^0.8.15;
 
 import "forge-std/Test.sol";
 import {MockERC20} from "../mock/MockERC20.sol";
-import {PancakeSwapV2Test} from "./PancakeSwapV2.t.sol";
+import {CatalistSwapV2Test} from "./CatalistSwapV2.t.sol";
 
-contract V2MockBnb is PancakeSwapV2Test {
+contract V2MockBnb is CatalistSwapV2Test {
     MockERC20 mock;
 
     function setUpTokens() internal override {

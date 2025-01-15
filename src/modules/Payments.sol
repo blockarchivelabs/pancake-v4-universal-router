@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Copyright (C) 2024 PancakeSwap
+// Copyright (C) 2024 CatalistSwap
 pragma solidity ^0.8.0;
 
 import {Constants} from "../libraries/Constants.sol";
@@ -41,7 +41,11 @@ abstract contract Payments is RouterImmutables {
     /// @param token The token to pay (can be ETH using Constants.ETH)
     /// @param recipient The address that will receive payment
     /// @param bips Portion in bips of whole balance of the contract
-    function payPortion(address token, address recipient, uint256 bips) internal {
+    function payPortion(
+        address token,
+        address recipient,
+        uint256 bips
+    ) internal {
         if (token == Constants.ETH) {
             uint256 balance = address(this).balance;
             uint256 amount = balance.calculatePortion(bips);
@@ -57,7 +61,11 @@ abstract contract Payments is RouterImmutables {
     /// @param token The token to sweep (can be ETH using Constants.ETH)
     /// @param recipient The address that will receive payment
     /// @param amountMinimum The minimum desired amount
-    function sweep(address token, address recipient, uint256 amountMinimum) internal {
+    function sweep(
+        address token,
+        address recipient,
+        uint256 amountMinimum
+    ) internal {
         uint256 balance;
         if (token == Constants.ETH) {
             balance = address(this).balance;

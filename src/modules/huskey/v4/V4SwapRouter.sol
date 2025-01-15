@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Copyright (C) 2024 PancakeSwap
+// Copyright (C) 2024 CatalistSwap
 pragma solidity ^0.8.24;
 
 import {Permit2Payments} from "../../Permit2Payments.sol";
@@ -11,11 +11,28 @@ import {Currency} from "pancake-v4-core/src/types/Currency.sol";
 
 /// @title Router for PCS v4 Trades
 abstract contract V4SwapRouter is V4Router, Permit2Payments {
-    constructor(address _vault, address _clPoolManager, address _binPoolManager)
-        V4Router(IVault(_vault), ICLPoolManager(_clPoolManager), IBinPoolManager(_binPoolManager))
+    constructor(
+        address _vault,
+        address _clPoolManager,
+        address _binPoolManager
+    )
+        V4Router(
+            IVault(_vault),
+            ICLPoolManager(_clPoolManager),
+            IBinPoolManager(_binPoolManager)
+        )
     {}
 
-    function _pay(Currency token, address payer, uint256 amount) internal override {
-        payOrPermit2Transfer(Currency.unwrap(token), payer, address(vault), amount);
+    function _pay(
+        Currency token,
+        address payer,
+        uint256 amount
+    ) internal override {
+        payOrPermit2Transfer(
+            Currency.unwrap(token),
+            payer,
+            address(vault),
+            amount
+        );
     }
 }
