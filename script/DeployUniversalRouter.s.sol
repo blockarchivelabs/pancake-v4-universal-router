@@ -28,7 +28,8 @@ abstract contract DeployUniversalRouter is Script {
 
   function run() external returns (address router) {
     /// @dev address from https://github.com/catalist/pancake-create3-factory
-    Create3Factory factory = Create3Factory(0xa36dED525CD03765B39Ea0b4D29Aa1894a105473);
+    // Create3Factory factory = Create3Factory(0xa36dED525CD03765B39Ea0b4D29Aa1894a105473); // HSK Mainnet
+    Create3Factory factory = Create3Factory(0x98D04db7A19A7aC97190FB8B3bd81Ab6d19d919A); // HSK Testnet
 
     // deployer will the the initial owner of universal router
     uint256 deployerPrivateKey = vm.envUint('PRIVATE_KEY');
