@@ -17,7 +17,7 @@ import { RouterParameters } from '../../../src/base/RouterImmutables.sol';
 contract DeployHashkey is DeployUniversalRouter {
   /// @notice contract address will be based on deployment salt
   function getDeploymentSalt() public pure override returns (bytes32) {
-    return keccak256('HUK-V4-UNIVERSAL-ROUTER/UniversalRouter/testnet-0108-001');
+    return keccak256('HUK-V4-UNIVERSAL-ROUTER/UniversalRouter/testnet-0224-001');
   }
 
   // ref from v3 universal router: https://sepolia.etherscan.io/tx/0xb4610521d3fc61f4837edbd899acb6c33a5fe0f3bb32ab84745ac0a8b1859906
@@ -26,7 +26,7 @@ contract DeployHashkey is DeployUniversalRouter {
     params = RouterParameters({
       permit2: 0xB633FDB3b17e9f59d993d1E9F7B51D54bcbcCc45,
       weth9: 0xA0F15E49C19648D49769920cFD58d47b18F52be8,
-      v2Factory: 0xf0145B3B775c6081a0517b9c91fC6D62843B3f4d,
+      v2Factory: 0x212F61a3c8f65e5C01711ae439ba88fC89bb0717,
       v3Factory: 0xA7B9b35325FEa1Dac3c1B00d97Ea8e14feB0DcD0,
       v3Deployer: 0x32f3b724AF1646f8aAc808b272474B8F046aeAB8,
       v2InitCodeHash: 0x31d4d4735f7b385a73bf8f4f40ce20074534e8112c1ff3324a1c032a2a17f021,
@@ -36,7 +36,7 @@ contract DeployHashkey is DeployUniversalRouter {
       v4Vault: UNSUPPORTED_PROTOCOL,
       v4ClPoolManager: UNSUPPORTED_PROTOCOL,
       v4BinPoolManager: UNSUPPORTED_PROTOCOL,
-      v3NFTPositionManager: 0x64458A3481b9888A4E51dE28003348589FFb7289,
+      v3NFTPositionManager: 0x3f5C88aA6760D65271AA4c3f6c4236444a4c1366,
       v4ClPositionManager: UNSUPPORTED_PROTOCOL,
       v4BinPositionManager: UNSUPPORTED_PROTOCOL
     });
